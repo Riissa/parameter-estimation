@@ -74,6 +74,9 @@ class TestSimplifiedThreePL(unittest.TestCase):
             "A": {"a": 1.2, "b": 0.5, "c": 0.2},
             "B": {"a": 0.8, "b": -0.2, "c": 0.1},
         }
+        ##Modify test later so that condition is a number not a letter?
+        # for condition in [2, 1, 0, -1, -2]:  #  Use correct keys
+            #self.assertAlmostEqual(predictions[condition], expected_prob, places=4)
 
         expected_output = {}
         for condition, param in parameters.items():
@@ -159,6 +162,53 @@ class TestSimplifiedThreePL(unittest.TestCase):
 
         # Check that NLL has improved (decreased)
         self.assertLess(fitted_nll, initial_nll, "NLL did not improve after fitting")
+#--------------
+    def test_model_stability_and_prediction_accuracy(self):
+        """Integration Test Code"""
+
+        # Step 1: Create dataset with five conditions and 100 trials per condition
+        accuracy_rates = {2: 0.55, 1: 0.60, 0: 0.75, -1: 0.90, -2: 0.95}
+        trials = []
+
+        for condition, accuracy in accuracy_rates.items():
+            correct_trials = int(accuracy * 100)  # How many should be correct
+            incorrect_trials = 100 - correct_trials  # Remaining should be incorrect
+
+            # Create 100 trials per condition
+            trials.extend([{"condition": condition, "correct": True}] * correct_trials)
+            trials.extend([{"condition": condition, "correct": False}] * incorrect_trials)
+
+        # Step 2: Create the Experiment instance
+        experiment = Experiment()
+        experiment.trials = trials
+
+        # Step 3: Fit the model multiple times to check stability
+        model = SimplifiedThreePL(experiment)
+        first_fit = model.fit()
+        second_fit = model.fit()
+
+        # Extract parameters from first and second fit
+        first_q, first_c, first_a, first_probabilities = first_fit
+        second_q, second_c, second_a, second_probabilities = second_fit
+
+        # Step 4: Verify parameter stability (small deviation allowed)
+        self.assertAlmostEqual(first_q, second_q, places=2, msg="q parameter is not stable across fits")
+        self.assertAlmostEqual(first_c, second_c, places=2, msg="c parameter is not stable across fits")
+        self.assertAlmostEqual(first_a, second_a, places=2, msg="a parameter is not stable across fits")
+
+        # Step 5: Verify that predictions match expected accuracy rates
+        for condition, expected_accuracy in accuracy_rates.items():
+            predicted_accuracy = first_probabilities[condition]
+            self.assertAlmostEqual(
+                predicted_accuracy, expected_accuracy, places=2,
+                msg=f"Predicted probability {predicted_accuracy} does not match observed accuracy {expected_accuracy} for condition {condition}"
+            )
+
+        print(f"Stable parameters: q={first_q}, c={first_c}, a={first_a}")
+        print(f"Predictions per condition: {first_probabilities}")
+
+if __name__ == "__main__":
+    unittest.main()
 
 
 

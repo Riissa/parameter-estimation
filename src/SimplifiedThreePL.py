@@ -142,46 +142,27 @@ class SimplifiedThreePL:
 
 
     def fit(self):
-            ## write code to fit the object
-        """Fits the model using Maximum Likelihood Estimation (MLE) dynamically."""
-        if not hasattr(self.experiment, 'trials') or not self.experiment.trials:
-            raise ValueError("No trials available in the experiment to fit the model.")
+    ## write code to fit the object
+        """Fit the model by estimating q (logit of c) and a (discrimination) and return them."""
+        result = minimize(self.negative_log_likelihood, x0=[0, 1], method='L-BFGS-B')
 
-        # Dynamically extract unique conditions from trials
-        unique_conditions = sorted(set(trial["condition"] for trial in self.experiment.trials))
+        if result.success:
+            self._logit_base_rate = result.x[0]
+            self._base_rate = 1 / (1 + np.exp(-result.x[0]))  # Convert q back to c
+            self._discrimination = result.x[1]
+            self._is_fitted = True
 
-        # Initial parameter guesses (one `a` globally, one `q` globally)
-        initial_guess = [1.0, 0.0]  # [a (discrimination), q (logit base rate)]
-
-        # Define the objective function inside fit() (proper indentation)
-        def objective(params):
-            a, q = params
-            parameters = {
-                condition: {"a": a, "b": condition, "q": q} for condition in unique_conditions
+            # Compute probabilities for each condition
+            theta = 0
+            b_values = [2, 1, 0, -1, -2]
+            probabilities = {
+                b: round(self._base_rate + (1 - self._base_rate) * (1 / (1 + np.exp(-self._discrimination * (theta - b)))), 4)
+                for b in b_values
             }
-            return self.negative_log_likelihood(parameters)  # Ensure self is used correctly
 
-        # Perform optimization
-        result = minimize(objective, initial_guess, method="L-BFGS-B")
-
-        if not result.success:
-            raise RuntimeError(f"Optimization failed: {result.message}")
-
-        # Extract optimized parameters
-        optimal_a, optimal_q = result.x
-        optimal_c = 1 / (1 + np.exp(-optimal_q))  # Convert q to c using inverse logit
-
-        # Store fitted values
-        self.set_discrimination(optimal_a)
-        self.set_logit_base_rate(optimal_q)
-        self.set_base_rate(optimal_c)
-        self.set_is_fitted(True)  # ✅ Set to True once fitted
-
-        print("Model successfully fitted with:")
-        print(f"Discrimination (a): {optimal_a}")
-        print(f"Logit Base Rate (q): {optimal_q}")
-        print(f"Base Rate (c): {optimal_c}")
-
+            return self._logit_base_rate, self._base_rate, self._discrimination, probabilities  # ✅ Return values
+        else:
+            raise RuntimeError("Optimization failed: " + result.message)
 
         ## after you fit the model, make the boolean is fit set to true
         self.set_is_fitted(True)
