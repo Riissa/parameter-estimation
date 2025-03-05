@@ -5,7 +5,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from Experiment import Experiment
+# from src.Experiment import Experiment #.src? 
+# from src.SimplifiedThreePL import SimplifiedThreePL
+
+from Experiment import Experiment #.src? 
 from SimplifiedThreePL import SimplifiedThreePL
 
 class TestSimplifiedThreePL(unittest.TestCase):
@@ -92,6 +95,42 @@ class TestSimplifiedThreePL(unittest.TestCase):
         model = SimplifiedThreePL(experiment)
         parameters = {"A": {"a": 1.0, "b": 0.0, "c": 0.2}}
         self.assertEqual(model.predict(parameters), {})
+    
+    def test_negative_log_likelihood(self):
+        """Test that negative_log_likelihood() correctly computes the log likelihood."""
+        trials = [
+            {"correct": True, "condition": "A"},
+            {"correct": False, "condition": "A"},
+            {"correct": True, "condition": "B"},
+        ]
+        experiment = self.create_experiment(trials)
+        model = SimplifiedThreePL(experiment)
+
+        parameters = {
+            "A": {"a": 1.2, "b": 0.5, "c": 0.2},
+            "B": {"a": 0.8, "b": -0.2, "c": 0.1},
+        }
+
+        # Compute expected negative log-likelihood manually
+        log_likelihood = 0
+        for trial in trials:
+            condition = trial["condition"]
+            correct = trial["correct"]
+
+            # Get predicted probability using the actual function
+            prob = model.predict(parameters).get(condition, 0.5)  # Default to 0.5 if missing
+
+            # Compute log likelihood
+            if correct:
+                log_likelihood += np.log(prob)
+            else:
+                log_likelihood += np.log(1 - prob)
+
+        expected_nll = -log_likelihood  # Negative log-likelihood
+
+        # Compare model output to expected output
+        self.assertAlmostEqual(model.negative_log_likelihood(parameters), expected_nll, places=4)
+
 
 
 # Run tests if executed directly
