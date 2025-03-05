@@ -80,9 +80,13 @@ class SimplifiedThreePL:
 
 
         for condition in unique_conditions:
-            a = parameters.get(condition, {}).get("a", 1)  # Default a=1
+            ##a = parameters.get(condition, {}).get("a", 1)  # Default a=1
+            #Below is different code to access a? 
+            a, q = parameters  # ✅ Directly unpack a and q
+            c = self.__calculate_base_rate_parameter(q)
+
             b = condition
-            c = self._base_rate
+            ##c = self._base_rate
             x = 0  # Assume ability level (theta) = 0
 
             print("value a: {a}")

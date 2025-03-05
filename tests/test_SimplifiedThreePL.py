@@ -69,7 +69,7 @@ class TestSimplifiedThreePL(unittest.TestCase):
         ]
         experiment = self.create_experiment(trials)
         model = SimplifiedThreePL(experiment)
-
+        #changed parameters from A,B to 2,1?
         parameters = {
             "A": {"a": 1.2, "b": 0.5, "c": 0.2},
             "B": {"a": 0.8, "b": -0.2, "c": 0.1},
