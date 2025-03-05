@@ -149,6 +149,7 @@ class TestSimplifiedThreePL(unittest.TestCase):
         # Fit the model (this should optimize the parameters)
         model.fit()  # Assuming fit() updates internal parameters
 
+        
         # Compute the new NLL after fitting
         fitted_nll = model.negative_log_likelihood(optimized_parameters)
         self.assertIsNotNone(fitted_nll, "Fitted NLL is None!")
