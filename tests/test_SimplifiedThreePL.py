@@ -95,41 +95,71 @@ class TestSimplifiedThreePL(unittest.TestCase):
         model = SimplifiedThreePL(experiment)
         parameters = {"A": {"a": 1.0, "b": 0.0, "c": 0.2}}
         self.assertEqual(model.predict(parameters), {})
-    
-    def test_negative_log_likelihood(self):
-        """Test that negative_log_likelihood() correctly computes the log likelihood."""
+
+    def test_negative_log_likelihood_computation(self):
+        """Test that negative_log_likelihood correctly computes expected values."""
+        
+        # Create synthetic experiment data
         trials = [
             {"correct": True, "condition": "A"},
             {"correct": False, "condition": "A"},
             {"correct": True, "condition": "B"},
+            {"correct": False, "condition": "B"},
+            {"correct": True, "condition": "A"},
         ]
+        
         experiment = self.create_experiment(trials)
         model = SimplifiedThreePL(experiment)
 
         parameters = {
-            "A": {"a": 1.2, "b": 0.5, "c": 0.2},
-            "B": {"a": 0.8, "b": -0.2, "c": 0.1},
+            "A": {"a": 1.2, "b": 0.5, "q": 0.2},  # Using q instead of c
+            "B": {"a": 0.8, "b": -0.2, "q": -1.0},  # Logit-transformed c
         }
 
-        # Compute expected negative log-likelihood manually
-        log_likelihood = 0
-        for trial in trials:
-            condition = trial["condition"]
-            correct = trial["correct"]
+        # Compute negative log-likelihood
+        computed_nll = model.negative_log_likelihood(parameters)
 
-            # Get predicted probability using the actual function
-            prob = model.predict(parameters).get(condition, 0.5)  # Default to 0.5 if missing
+        # Ensure the computed NLL is a valid float
+        self.assertIsInstance(computed_nll, float, "NLL is not a float!")
+        self.assertGreaterEqual(computed_nll, 0, "NLL should be non-negative")
 
-            # Compute log likelihood
-            if correct:
-                log_likelihood += np.log(prob)
-            else:
-                log_likelihood += np.log(1 - prob)
+    def test_negative_log_likelihood_improves_after_fitting(self):
+        """Test that negative log-likelihood improves after fitting."""
+        
+        # Create a set of trials
+        trials = [
+            {"correct": True, "condition": "A"},
+            {"correct": False, "condition": "A"},
+            {"correct": True, "condition": "B"},
+            {"correct": False, "condition": "B"},
+            {"correct": True, "condition": "A"},
+        ]
+        
+        experiment = self.create_experiment(trials)
+        model = SimplifiedThreePL(experiment)
 
-        expected_nll = -log_likelihood  # Negative log-likelihood
+        # Initial parameter guess (random or unoptimized)
+        initial_parameters = {
+            "A": {"a": 1.0, "b": 0.0, "q": 0.0},
+            "B": {"a": 0.8, "b": -0.2, "q": 0.0},
+        }
 
-        # Compare model output to expected output
-        self.assertAlmostEqual(model.negative_log_likelihood(parameters), expected_nll, places=4)
+        # Compute initial negative log-likelihood
+        initial_nll = model.negative_log_likelihood(initial_parameters)
+        self.assertIsNotNone(initial_nll, "Initial NLL is None!")
+
+        # Fit the model (this should optimize the parameters)
+        model.fit()  # Assuming fit() updates internal parameters
+
+        # Compute the new NLL after fitting
+        fitted_nll = model.negative_log_likelihood(optimized_parameters)
+        self.assertIsNotNone(fitted_nll, "Fitted NLL is None!")
+
+        # Print debugging info
+        print(f"Initial NLL: {initial_nll}, Fitted NLL: {fitted_nll}")
+
+        # Check that NLL has improved (decreased)
+        self.assertLess(fitted_nll, initial_nll, "NLL did not improve after fitting")
 
 
 

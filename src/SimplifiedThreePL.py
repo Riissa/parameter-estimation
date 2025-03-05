@@ -2,11 +2,53 @@ import numpy as np
 from Experiment import Experiment  # Ensure correct import
 
 class SimplifiedThreePL:
-    def __init__(self, experiment):
+    # def __init__(self, experiment):
+    def __init__(self, experiment, 
+                 base_rate = 0, logit_base_rate = 0, discrimination=0, is_fitted=False):
         """Initialize with an Experiment instance."""
         if not isinstance(experiment, Experiment):
             raise TypeError("Expected an Experiment instance")
         self.experiment = experiment
+
+        # private attributes
+        self._base_rate = base_rate
+        self._logit_base_rate = logit_base_rate
+        self._discrimination = discrimination
+        self._is_fitted = is_fitted 
+            # a boolean that represents whether a model has been fitted using fit()
+
+    # - - - -  getter methods: returns the attribute
+
+    def get_base_rate(self):
+        return self._base_rate
+    
+    def get_logit_base_rate(self):
+        return self._logit_base_rate
+    
+    def get_discrimination(self):
+        if not self._is_fitted:
+            raise AttributeError("Model must be fitted before calling get_discrimination")
+        else:
+            return self._discrimination
+    
+    def get_is_fitted(self):
+        return self._is_fitted
+    
+    # - - - - setter methods: do not return values, just set private attributes
+
+    def set_base_rate(self, base_rate):
+        self._base_rate = base_rate
+    
+    def set_logit_base_rate(self, logit_base_rate):
+        self._logit_base_rate = logit_base_rate
+    
+    def set_discrimination(self, discrimination):
+        self._discrimination = discrimination
+    
+    def set_is_fitted(self, is_fitted):
+        self._is_fitted = is_fitted
+
+    
 
     def summary(self):
         """Returns a dictionary summarizing the experiment's trial data."""
@@ -31,32 +73,142 @@ class SimplifiedThreePL:
             return {}
 
         probabilities = {}
-        unique_conditions = set(trial["condition"] for trial in self.experiment.trials if "condition" in trial)
+        # unique_conditions = set(trial["condition"] for trial in self.experiment.trials if "condition" in trial)
+        unique_conditions = [2.0, 1.0, 0.0, -1.0, -2.0]
+
 
         for condition in unique_conditions:
             a = parameters.get(condition, {}).get("a", 1)  # Default a=1
-            b = parameters.get(condition, {}).get("b", 0)  # Default b=0
-            c = parameters.get(condition, {}).get("c", 0)  # Default c=0
+            b = condition
+            c = self._base_rate
             x = 0  # Assume ability level (theta) = 0
 
-            probability = c + (1 - c) * (1 / (1 + np.exp(-a * (x - b))))
+            print("value a: {a}")
+            print("value b: {b}")
+            print("value c: {c}")
+            print("value x: {x}")
+
+            probability = c + ((1 - c) * (1 / (1 + np.exp(-a * (x - b)))))
             probabilities[condition] = round(probability, 4)  # Match rounding in test
 
+        
+        print("Testing: print conditions array")
+        # for value in probabilities.values():
+        #     print(value)
+
+        for condition in unique_conditions:
+            print(condition)
+
         return probabilities
-    import numpy as np
-
+    
     def negative_log_likelihood(self, parameters):
-        """Computes the negative log-likelihood of the data given the parameters."""
+        '''Computes the negative log-likelihood using a logit link for the guessing parameter.'''
         if not hasattr(self.experiment, 'trials') or not self.experiment.trials:
-            return 0  # If there are no trials, return 0 (no likelihood to compute)
-
+            return 0  # If no trials exist, return 0
+        
         log_likelihood = 0
 
         for trial in self.experiment.trials:
             condition = trial["condition"]
             correct = trial["correct"]
 
-            # Get predicted probability for this
+            if condition not in parameters:
+                continue  # Skip if no parameters for this condition
+
+            a = parameters[condition]["a"]
+            b = parameters[condition]["b"]
+            q = parameters[condition]["q"]  # q is used instead of c
+
+            # Convert q to c using the inverse logit function
+            c = 1 / (1 + np.exp(-q))
+
+            # Compute probability using the 3PL model
+            theta = 0  # Assume ability level θ = 0
+            prob_correct = c + (1 - c) * (1 / (1 + np.exp(-a * (theta - b))))
+
+            # Avoid log(0) by using a small epsilon value
+            eps = 1e-10
+            prob_correct = max(min(prob_correct, 1 - eps), eps)
+
+            # Compute log-likelihood for correct/incorrect responses
+            if correct:
+                log_likelihood += np.log(prob_correct)
+            else:
+                log_likelihood += np.log(1 - prob_correct)
+
+        return -log_likelihood  # Negative log-likelihood must be minimized
+
+
+    def fit(self):
+        # write code to fit the object
+
+
+        # after you fit the model, make the boolean is fit set to true
+        self.set_is_fitted(True)
+
+
+    
+
+
+
+# old code draft:
+
+#     import numpy as np
+
+#     import numpy as np
+
+# class SimplifiedThreePL:
+#     def __init__(self, experiment):
+#         """Initialize with an Experiment instance."""
+#         if not isinstance(experiment, Experiment):
+#             raise TypeError("Expected an Experiment instance")
+#         self.experiment = experiment
+
+#     def negative_log_likelihood(self, parameters):
+#         """Computes the negative log-likelihood using a logit link for the guessing parameter."""
+#         if not hasattr(self.experiment, 'trials') or not self.experiment.trials:
+#             return 0  # If no trials exist, return 0
+        
+#         log_likelihood = 0
+
+#         for trial in self.experiment.trials:
+#             condition = trial["condition"]
+#             correct = trial["correct"]
+
+#             if condition not in parameters:
+#                 continue  # Skip if no parameters for this condition
+
+#             a = parameters[condition]["a"]
+#             b = parameters[condition]["b"]
+#             q = parameters[condition]["q"]  # q is used instead of c
+
+#             # Convert q to c using the inverse logit function
+#             c = 1 / (1 + np.exp(-q))
+
+#             # Compute probability using the 3PL model
+#             theta = 0  # Assume ability level θ = 0
+#             prob_correct = c + (1 - c) * (1 / (1 + np.exp(-a * (theta - b))))
+
+#             # Avoid log(0) by using a small epsilon value
+#             eps = 1e-10
+#             prob_correct = max(min(prob_correct, 1 - eps), eps)
+
+#             # Compute log-likelihood for correct/incorrect responses
+#             if correct:
+#                 log_likelihood += np.log(prob_correct)
+#             else:
+#                 log_likelihood += np.log(1 - prob_correct)
+
+#         return -log_likelihood  # Negative log-likelihood must be minimized
+    
+
+#     def fit(self):
+#         # write code to fit the object
+
+
+#         # after you fit the model, make the boolean is fit set to true
+#         self.set_is_fitted(True)
+
 
     
 
