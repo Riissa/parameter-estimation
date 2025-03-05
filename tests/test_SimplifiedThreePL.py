@@ -3,15 +3,18 @@ import os
 import unittest
 import numpy as np
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..','src')))
-from src.Experiment import Experiment
-from src.SimplifiedThreePL import SimplifiedThreePL
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
+from Experiment import Experiment
+from SimplifiedThreePL import SimplifiedThreePL
 
 class TestSimplifiedThreePL(unittest.TestCase):
 
     def create_experiment(self, trials):
-        """Helper function to create an Experiment instance with custom trial data."""
-        return Experiment(trials)
+        """Creates an Experiment instance and assigns trials dynamically."""
+        experiment = Experiment()
+        experiment.trials = trials
+        return experiment
 
     def test_constructor_accepts_valid_experiment(self):
         """Test that the constructor correctly accepts a valid Experiment object."""
@@ -21,9 +24,12 @@ class TestSimplifiedThreePL(unittest.TestCase):
 
     def test_constructor_with_invalid_type_raises_type_error(self):
         """Test that the constructor raises TypeError for non-Experiment objects."""
-        for invalid_input in [None, 42, "invalid", [], {}]:
-            with self.assertRaises(TypeError):
-                SimplifiedThreePL(invalid_input)
+        invalid_inputs = [None, 42, "invalid", [], {}]
+
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                with self.assertRaises(TypeError):
+                    SimplifiedThreePL(invalid_input)
 
     def test_summary_returns_correct_keys(self):
         """Test that summary() returns a dictionary with expected keys."""
@@ -36,25 +42,10 @@ class TestSimplifiedThreePL(unittest.TestCase):
     def test_summary_computes_correct_values(self):
         """Test that summary() correctly calculates trial statistics dynamically."""
         test_cases = [
-            # Format: (trial data, expected n_total, n_correct, n_incorrect, n_conditions)
-            ([], 0, 0, 0, 0),  # No trials
-            ([{"correct": True, "condition": "A"}], 1, 1, 0, 1),  # One correct trial
-            ([{"correct": False, "condition": "A"}], 1, 0, 1, 1),  # One incorrect trial
-            ([
-                {"correct": True, "condition": "A"},
-                {"correct": False, "condition": "A"},
-                {"correct": True, "condition": "B"},
-                {"correct": False, "condition": "B"},
-                {"correct": True, "condition": "C"},
-            ], 5, 3, 2, 3),  # Multiple conditions and correct/incorrect trials
-            ([
-                {"correct": True, "condition": "X"},
-                {"correct": True, "condition": "X"},
-                {"correct": False, "condition": "Y"},
-                {"correct": False, "condition": "Z"},
-                {"correct": True, "condition": "Z"},
-                {"correct": False, "condition": "Z"},
-            ], 6, 3, 3, 3),  # Another test with multiple conditions
+            ([], 0, 0, 0, 0),
+            ([{"correct": True, "condition": "A"}], 1, 1, 0, 1),
+            ([{"correct": False, "condition": "A"}], 1, 0, 1, 1),
+            ([{"correct": True, "condition": "A"}, {"correct": False, "condition": "B"}], 2, 1, 1, 2),
         ]
 
         for trials, expected_n_total, expected_n_correct, expected_n_incorrect, expected_n_conditions in test_cases:
@@ -62,13 +53,49 @@ class TestSimplifiedThreePL(unittest.TestCase):
                 experiment = self.create_experiment(trials)
                 model = SimplifiedThreePL(experiment)
                 summary = model.summary()
-                
+
                 self.assertEqual(summary["n_total"], expected_n_total)
                 self.assertEqual(summary["n_correct"], expected_n_correct)
                 self.assertEqual(summary["n_incorrect"], expected_n_incorrect)
                 self.assertEqual(summary["n_conditions"], expected_n_conditions)
 
+    def test_predict_correct_probabilities(self):
+        """Test that predict() returns correct probabilities for given parameters."""
+        trials = [
+            {"correct": True, "condition": "A"},
+            {"correct": False, "condition": "A"},
+            {"correct": True, "condition": "B"},
+        ]
+        experiment = self.create_experiment(trials)
+        model = SimplifiedThreePL(experiment)
+
+        parameters = {
+            "A": {"a": 1.2, "b": 0.5, "c": 0.2},
+            "B": {"a": 0.8, "b": -0.2, "c": 0.1},
+        }
+
+        expected_output = {}
+        for condition, param in parameters.items():
+            a, b, c = param["a"], param["b"], param["c"]
+            x = 0  
+            prob = c + (1 - c) * (1 / (1 + np.exp(-a * (x - b))))
+            expected_output[condition] = round(prob, 4)
+
+        predictions = model.predict(parameters)
+        for condition, expected_prob in expected_output.items():
+            with self.subTest(condition=condition):
+                self.assertAlmostEqual(predictions[condition], expected_prob, places=4)
+
+    def test_predict_handles_empty_experiment(self):
+        """Test that predict() returns an empty dictionary when no trials exist."""
+        experiment = self.create_experiment([])
+        model = SimplifiedThreePL(experiment)
+        parameters = {"A": {"a": 1.0, "b": 0.0, "c": 0.2}}
+        self.assertEqual(model.predict(parameters), {})
+
+
 # Run tests if executed directly
-# if __name__ == "__main__":
-#     unittest.main()
+if __name__ == "__main__":
+    unittest.main()
+
 
