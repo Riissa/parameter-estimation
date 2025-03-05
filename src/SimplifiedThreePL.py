@@ -1,6 +1,7 @@
 #This code was assissted with the help of ChatGPT
 import numpy as np
 from Experiment import Experiment  # Ensure correct import
+from scipy.optimize import minimize
 
 class SimplifiedThreePL:
     # def __init__(self, experiment):
@@ -141,8 +142,46 @@ class SimplifiedThreePL:
 
 
     def fit(self):
-        # write code to fit the object
+            ## write code to fit the object
+        """Fits the model using Maximum Likelihood Estimation (MLE) dynamically."""
+        if not hasattr(self.experiment, 'trials') or not self.experiment.trials:
+            raise ValueError("No trials available in the experiment to fit the model.")
+
+        # Dynamically extract unique conditions from trials
+        unique_conditions = sorted(set(trial["condition"] for trial in self.experiment.trials))
+
+        # Initial parameter guesses (one `a` globally, one `q` globally)
+        initial_guess = [1.0, 0.0]  # [a (discrimination), q (logit base rate)]
+
+        # Define the objective function inside fit() (proper indentation)
+        def objective(params):
+            a, q = params
+            parameters = {
+                condition: {"a": a, "b": condition, "q": q} for condition in unique_conditions
+            }
+            return self.negative_log_likelihood(parameters)  # Ensure self is used correctly
+
+        # Perform optimization
+        result = minimize(objective, initial_guess, method="L-BFGS-B")
+
+        if not result.success:
+            raise RuntimeError(f"Optimization failed: {result.message}")
+
+        # Extract optimized parameters
+        optimal_a, optimal_q = result.x
+        optimal_c = 1 / (1 + np.exp(-optimal_q))  # Convert q to c using inverse logit
+
+        # Store fitted values
+        self.set_discrimination(optimal_a)
+        self.set_logit_base_rate(optimal_q)
+        self.set_base_rate(optimal_c)
+        self.set_is_fitted(True)  # ✅ Set to True once fitted
+
+        print("Model successfully fitted with:")
+        print(f"Discrimination (a): {optimal_a}")
+        print(f"Logit Base Rate (q): {optimal_q}")
+        print(f"Base Rate (c): {optimal_c}")
 
 
-        # after you fit the model, make the boolean is fit set to true
+        ## after you fit the model, make the boolean is fit set to true
         self.set_is_fitted(True)
