@@ -1,3 +1,4 @@
+#This code was assissted with the help of ChatGPT
 import numpy as np
 from Experiment import Experiment  # Ensure correct import
 
@@ -136,7 +137,7 @@ class SimplifiedThreePL:
             else:
                 log_likelihood += np.log(1 - prob_correct)
 
-        return -log_likelihood  # Negative log-likelihood must be minimized
+        return -log_likelihood  # Negative log-likelihood must be minimized """
 
 
     def fit(self):
@@ -145,74 +146,3 @@ class SimplifiedThreePL:
 
         # after you fit the model, make the boolean is fit set to true
         self.set_is_fitted(True)
-
-
-    
-
-
-
-# old code draft:
-
-#     import numpy as np
-
-#     import numpy as np
-
-# class SimplifiedThreePL:
-#     def __init__(self, experiment):
-#         """Initialize with an Experiment instance."""
-#         if not isinstance(experiment, Experiment):
-#             raise TypeError("Expected an Experiment instance")
-#         self.experiment = experiment
-
-#     def negative_log_likelihood(self, parameters):
-#         """Computes the negative log-likelihood using a logit link for the guessing parameter."""
-#         if not hasattr(self.experiment, 'trials') or not self.experiment.trials:
-#             return 0  # If no trials exist, return 0
-        
-#         log_likelihood = 0
-
-#         for trial in self.experiment.trials:
-#             condition = trial["condition"]
-#             correct = trial["correct"]
-
-#             if condition not in parameters:
-#                 continue  # Skip if no parameters for this condition
-
-#             a = parameters[condition]["a"]
-#             b = parameters[condition]["b"]
-#             q = parameters[condition]["q"]  # q is used instead of c
-
-#             # Convert q to c using the inverse logit function
-#             c = 1 / (1 + np.exp(-q))
-
-#             # Compute probability using the 3PL model
-#             theta = 0  # Assume ability level θ = 0
-#             prob_correct = c + (1 - c) * (1 / (1 + np.exp(-a * (theta - b))))
-
-#             # Avoid log(0) by using a small epsilon value
-#             eps = 1e-10
-#             prob_correct = max(min(prob_correct, 1 - eps), eps)
-
-#             # Compute log-likelihood for correct/incorrect responses
-#             if correct:
-#                 log_likelihood += np.log(prob_correct)
-#             else:
-#                 log_likelihood += np.log(1 - prob_correct)
-
-#         return -log_likelihood  # Negative log-likelihood must be minimized
-    
-
-#     def fit(self):
-#         # write code to fit the object
-
-
-#         # after you fit the model, make the boolean is fit set to true
-#         self.set_is_fitted(True)
-
-
-    
-
-
-
-    
-

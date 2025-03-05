@@ -1,12 +1,10 @@
+#This code was assisted with the help of ChatGPT
 import sys
 import os
 import unittest
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
-# from src.Experiment import Experiment #.src? 
-# from src.SimplifiedThreePL import SimplifiedThreePL
 
 from Experiment import Experiment #.src? 
 from SimplifiedThreePL import SimplifiedThreePL
