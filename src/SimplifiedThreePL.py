@@ -123,7 +123,9 @@ class SimplifiedThreePL:
 
             a = parameters[condition]["a"]
             b = parameters[condition]["b"]
-            q = parameters[condition]["q"]  # q is used instead of c
+            q = parameters[condition].get("q", 0)  # Ensures 'q' is never missing?
+
+            #q = parameters[condition]["q"]  # q is used instead of c
 
             # Convert q to c using the inverse logit function
             c = 1 / (1 + np.exp(-q))
@@ -164,9 +166,11 @@ class SimplifiedThreePL:
                 for b in b_values
             }
 
-            return self._logit_base_rate, self._base_rate, self._discrimination, probabilities  # ✅ Return values
-        else:
-            raise RuntimeError("Optimization failed: " + result.message)
+            #return self._logit_base_rate, self._base_rate, self._discrimination, probabilities  # ✅ Return values
+        #else:
+            #raise RuntimeError("Optimization failed: " + result.message)
 
         ## after you fit the model, make the boolean is fit set to true
-        self.set_is_fitted(True)
+            self.set_is_fitted(True)
+        else:
+            raise RuntimeError(f"Optimization failed: {result.get('message', 'Unknown error')}")
