@@ -207,8 +207,7 @@ class TestSimplifiedThreePL(unittest.TestCase):
         print(f"Stable parameters: q={first_q}, c={first_c}, a={first_a}")
         print(f"Predictions per condition: {first_probabilities}")
 
-if __name__ == "__main__":
-    unittest.main()
+
 
 
 
